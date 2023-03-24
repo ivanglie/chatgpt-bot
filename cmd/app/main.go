@@ -11,7 +11,7 @@ import (
 
 func main() {
 	users, exists := os.LookupEnv("BOT_USERS")
-	log.Printf("users: %s", users)
+	log.Printf("users: %s\n", users)
 
 	client, err := oai.NewClient(os.Getenv("OPENAI_API_KEY"), 1000, "")
 	if err != nil {
