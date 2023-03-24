@@ -1,7 +1,6 @@
 .DS_Store
 # vendor/
 *.out
-*.env
-*.debug
-*.sh
+*prod*
+*debug*
 *.db
