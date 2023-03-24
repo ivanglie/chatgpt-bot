@@ -2,6 +2,7 @@ package oai
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 
@@ -24,11 +25,16 @@ type OpenAI struct {
 // NewClient makes a client for ChatGPT
 // maxTokens is hard limit for the number of tokens in the response
 // https://platform.openai.com/docs/api-reference/chat/create#chat/create-max_tokens
-func NewClient(authToken string, maxTokens int, prompt string) *OpenAI {
+// Returns OpenAI client and error if authToken is empty
+func NewClient(authToken string, maxTokens int, prompt string) (*OpenAI, error) {
+	if len(authToken) == 0 {
+		return nil, errors.New("OPENAI_API_KEY is empty")
+	}
+
 	client := openai.NewClient(authToken)
 	log.Printf("OpenAI with prompt=%s, max=%d", prompt, maxTokens)
 
-	return &OpenAI{authToken: authToken, client: client, maxTokens: maxTokens, prompt: prompt}
+	return &OpenAI{authToken: authToken, client: client, maxTokens: maxTokens, prompt: prompt}, nil
 }
 
 // Send request to OpenAI and returns the response
