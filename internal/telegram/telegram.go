@@ -20,6 +20,19 @@ type TelegramBot struct {
 	timeout int
 }
 
+// Chat represents a chat.
+type Chat struct {
+	ID           int64
+	IsGroup      bool
+	IsSuperGroup bool
+}
+
+// Message is primary record to pass data from/to bots
+type Message struct {
+	ID   int
+	Chat *Chat `json:"chat"`
+}
+
 // NewBotAPI makes a bot for Telegram
 func NewBotAPI(token string, debug bool, offset, timeout int) (*TelegramBot, error) {
 	if len(token) == 0 {
@@ -52,14 +65,16 @@ func (b *TelegramBot) GetUpdatesChan() <-chan tgbotapi.Update {
 }
 
 // Send request to Telegram and returns the response
-func (b *TelegramBot) Execute(chatID int64, request string) (response string, err error) {
-	req := tgbotapi.NewMessage(chatID, request)
+func (b *TelegramBot) Execute(message Message, text string) error {
+	msg := tgbotapi.NewMessage(message.Chat.ID, text)
 
-	var res tgbotapi.Message
-	res, err = b.bot.Send(req)
-	if err != nil {
-		return "", err
+	if message.Chat.IsGroup || message.Chat.IsSuperGroup {
+		msg.ReplyToMessageID = message.ID
 	}
 
-	return res.Text, nil
+	if _, err := b.bot.Send(msg); err != nil {
+		return err
+	}
+
+	return nil
 }

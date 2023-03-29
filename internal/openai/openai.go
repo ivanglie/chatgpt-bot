@@ -1,10 +1,11 @@
-package oai
+package openai
 
 import (
 	"context"
 	"errors"
 	"fmt"
 	"log"
+	"strings"
 
 	openai "github.com/sashabaranov/go-openai"
 )
@@ -38,7 +39,14 @@ func NewClient(authToken string, maxTokens int, prompt string) (*OpenAI, error) 
 }
 
 // Send request to OpenAI and returns the response
-func (o *OpenAI) Execute(request string) (response string, err error) {
+func (o *OpenAI) Execute(request string, isGroup bool) (response string, err error) {
+	if isGroup {
+		ok, request := o.request(request)
+		if !ok {
+			return "", fmt.Errorf("request %s has no prefix", request)
+		}
+	}
+
 	r := request
 	if o.prompt != "" {
 		r = o.prompt + ".\n" + request
@@ -79,4 +87,13 @@ func (o *OpenAI) Execute(request string) (response string, err error) {
 	}
 
 	return resp, nil
+}
+
+func (o *OpenAI) request(text string) (bool, string) {
+	for _, prefix := range []string{"chat!", "gpt!", "ai!"} {
+		if strings.HasPrefix(text, prefix) {
+			return true, strings.TrimSpace(strings.TrimPrefix(text, prefix))
+		}
+	}
+	return false, ""
 }
