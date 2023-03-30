@@ -26,7 +26,7 @@ func (b BotSlice) Help() string {
 
 	for _, bot := range b {
 		help := bot.Help()
-		if len(help) == 0 {
+		if len(help) != 0 {
 			// Because WriteString always returns nil error
 			if !strings.HasSuffix(help, "\n") {
 				help += "\n"
@@ -98,7 +98,7 @@ func (b BotSlice) OnMessage(message utils.Message) (response utils.Response) {
 		return lines[i] < lines[j]
 	})
 
-	log.Printf("[DEBUG] answers %d, send %v", len(lines), len(lines) > 0)
+	log.Printf("[DEBUG] answers %d, readyToSend %v", len(lines), len(lines) > 0)
 	return utils.Response{
 		Text:        strings.Join(lines, "\n"),
 		ReadyToSend: len(lines) > 0,

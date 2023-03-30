@@ -71,8 +71,8 @@ func (o *OpenAI) OnMessage(msg utils.Message) (response utils.Response) {
 		return utils.Response{}
 	}
 
-	log.Printf("[DEBUG] next request to ChatGPT can be made after %s, in %d minutes",
-		o.lastDT.Add(30*time.Minute), int(30-time.Since(o.lastDT).Minutes()))
+	// log.Printf("[DEBUG] next request to ChatGPT can be made after %s, in %d minutes",
+	// 	o.lastDT.Add(30*time.Minute), int(30-time.Since(o.lastDT).Minutes()))
 
 	r := utils.Response{
 		Text:        responseAI,
