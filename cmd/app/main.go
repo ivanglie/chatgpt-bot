@@ -2,64 +2,65 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
+	"net/http"
 	"os"
-	"strings"
+	"time"
 
-	openai "github.com/ivanglie/chatgpt-bot/internal/openai"
-	telegram "github.com/ivanglie/chatgpt-bot/internal/telegram"
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+
+	"github.com/ivanglie/chatgpt-bot/internal/bot"
+	"github.com/ivanglie/chatgpt-bot/internal/process"
 )
 
+var revision = "local"
+
 func main() {
-	users, exists := os.LookupEnv("BOT_USERS")
-	log.Printf("users: %s", users)
+	ctx := context.TODO()
 
-	client, err := openai.NewClient(os.Getenv("OPENAI_API_KEY"), 1000, "")
+	fmt.Printf("chatgpt-bot, %s\n", revision)
+
+	setupLog(true)
+
+	tbAPI, err := tgbotapi.NewBotAPI(os.Getenv("BOT_TOKEN"))
 	if err != nil {
-		log.Panic(err)
+		log.Fatalf("[ERROR] can't make telegram bot, %v", err)
 	}
 
-	bot, err := telegram.NewBotAPI(os.Getenv("BOT_TOKEN"), true, 0, 60)
+	tbAPI.Debug = true
+
+	openAIBot, err := bot.NewOpenAI(os.Getenv("OPENAI_API_KEY"), 1000, "", &http.Client{Timeout: 120 * time.Second})
 	if err != nil {
-		log.Panic(err)
+		log.Fatalf("[ERROR] %v", err)
 	}
 
-	ctx := context.Background()
-	updates := bot.GetUpdatesChan()
+	bots := bot.BotSlice{
+		openAIBot,
+	}
 
-	for {
-		select {
+	tgListener := process.TelegramListener{
+		TbAPI:        tbAPI,
+		Bots:         bots,
+		Debug:        true,
+		IdleDuration: 30 * time.Second,
+	}
 
-		case <-ctx.Done():
-			log.Printf("ctx.Done(): %v\n", ctx.Err())
-			return
-
-		case update, ok := <-updates:
-			if !ok {
-				log.Printf("updates channel closed")
-				return
-			}
-
-			msg := update.Message
-
-			if msg == nil || msg.IsCommand() {
-				continue
-			}
-
-			if user := msg.Chat.UserName; exists && !strings.Contains(users, user) {
-				log.Printf("User %s is not in BOT_USERS", user)
-				continue
-			}
-
-			res, err := client.Execute(msg.Text, msg.Chat.IsGroup() || msg.Chat.IsSuperGroup())
-			if err != nil {
-				log.Printf("error: %v\n", err)
-				continue
-			}
-
-			m := telegram.Message{ID: msg.MessageID,
-				Chat: &telegram.Chat{ID: msg.Chat.ID, IsGroup: msg.Chat.IsGroup(), IsSuperGroup: msg.Chat.IsSuperGroup()}}
-			bot.Execute(m, res)
+	if users, exists := os.LookupEnv("BOT_USERS"); exists {
+		tgListener = process.TelegramListener{
+			TbAPI:        tbAPI,
+			Bots:         bots,
+			Users:        users,
+			Debug:        true,
+			IdleDuration: 30 * time.Second,
 		}
 	}
+
+	if err := tgListener.Do(ctx); err != nil {
+		log.Fatalf("[ERROR] telegram listener failed, %v", err)
+	}
+}
+
+func setupLog(dbg bool) {
+
 }
