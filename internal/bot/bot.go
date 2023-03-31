@@ -63,7 +63,7 @@ func (b BotSlice) OnMessage(message utils.Message) (response utils.Response) {
 	wg := &sync.WaitGroup{}
 	for _, bot := range b {
 		bot := bot
-		log.Println("bot=", bot)
+
 		wg.Add(1)
 		go func(ctx context.Context) {
 			defer wg.Done()
