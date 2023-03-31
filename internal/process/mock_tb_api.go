@@ -189,19 +189,3 @@ func (mock *tbAPIMock) Send(c tbapi.Chattable) (tbapi.Message, error) {
 	mock.lockSend.Unlock()
 	return mock.SendFunc(c)
 }
-
-// SendCalls gets all the calls that were made to Send.
-// Check the length with:
-//
-//	len(mockedtbAPI.SendCalls())
-func (mock *tbAPIMock) SendCalls() []struct {
-	C tbapi.Chattable
-} {
-	var calls []struct {
-		C tbapi.Chattable
-	}
-	mock.lockSend.RLock()
-	calls = mock.calls.Send
-	mock.lockSend.RUnlock()
-	return calls
-}

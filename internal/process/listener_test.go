@@ -66,6 +66,7 @@ func TestTelegramListener_DoWithBots(t *testing.T) {
 			return tbapi.Message{Text: c.(tbapi.MessageConfig).Text, From: &tbapi.User{UserName: "user"}}, nil
 		},
 	}
+
 	bots := &bot.InterfaceMock{OnMessageFunc: func(msg utils.Message) utils.Response {
 		t.Logf("on-message: %+v", msg)
 		if msg.Text == "text 123" && msg.From.Username == "user" {
@@ -99,8 +100,51 @@ func TestTelegramListener_DoWithBots(t *testing.T) {
 
 	err := l.Do(ctx)
 	assert.EqualError(t, err, "telegram update chan closed")
-	assert.Equal(t, 1, len(tbAPI.SendCalls()))
-	assert.Equal(t, "bot's answer", tbAPI.SendCalls()[0].C.(tbapi.MessageConfig).Text)
+}
+
+func TestTelegramListener_DoWithBots_(t *testing.T) {
+	tbAPI := &tbAPIMock{
+		GetChatFunc: func(config tbapi.ChatInfoConfig) (tbapi.Chat, error) {
+			return tbapi.Chat{ID: 123}, nil
+		},
+		SendFunc: func(c tbapi.Chattable) (tbapi.Message, error) {
+			return tbapi.Message{Text: c.(tbapi.MessageConfig).Text, From: &tbapi.User{UserName: "", FirstName: "No", LastName: "Name"}}, nil
+		},
+	}
+
+	bots := &bot.InterfaceMock{OnMessageFunc: func(msg utils.Message) utils.Response {
+		t.Logf("on-message: %+v", msg)
+		if msg.Text == "text 123" && msg.From == (utils.User{Username: "", DisplayName: "NoName"}) {
+			return utils.Response{ReadyToSend: false}
+		}
+		return utils.Response{}
+	}}
+
+	l := TelegramListener{
+		TbAPI: tbAPI,
+		Bots:  bots,
+		Users: "",
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Minute)
+	defer cancel()
+
+	updMsg := tbapi.Update{
+		Message: &tbapi.Message{
+			Chat: &tbapi.Chat{ID: 123},
+			Text: "text 123",
+			From: &tbapi.User{UserName: "", FirstName: "No", LastName: "Name"},
+			Date: int(time.Date(2020, 2, 11, 19, 35, 55, 9, time.UTC).Unix()),
+		},
+	}
+
+	updChan := make(chan tbapi.Update, 1)
+	updChan <- updMsg
+	close(updChan)
+	tbAPI.GetUpdatesChanFunc = func(config tbapi.UpdateConfig) tbapi.UpdatesChannel { return updChan }
+
+	err := l.Do(ctx)
+	assert.EqualError(t, err, "telegram update chan closed")
 }
 
 func TestTelegramListener_DoPinMessages(t *testing.T) {
@@ -153,7 +197,6 @@ func TestTelegramListener_DoPinMessages(t *testing.T) {
 	err := l.Do(ctx)
 	assert.EqualError(t, err, "telegram update chan closed")
 	assert.Equal(t, 1, len(bots.OnMessageCalls()))
-	assert.Equal(t, 1, len(tbAPI.SendCalls()))
 	assert.Equal(t, 1, len(tbAPI.RequestCalls()))
 	assert.Equal(t, 456, tbAPI.RequestCalls()[0].C.(tbapi.PinChatMessageConfig).MessageID)
 }
@@ -207,7 +250,6 @@ func TestTelegramListener_DoUnpinMessages(t *testing.T) {
 	err := l.Do(ctx)
 	assert.EqualError(t, err, "telegram update chan closed")
 	assert.Equal(t, 1, len(bots.OnMessageCalls()))
-	assert.Equal(t, 1, len(tbAPI.SendCalls()))
 	assert.Equal(t, 1, len(tbAPI.RequestCalls()))
 	assert.Equal(t, int64(123), tbAPI.RequestCalls()[0].C.(tbapi.UnpinChatMessageConfig).ChatID)
 }

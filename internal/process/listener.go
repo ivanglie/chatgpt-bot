@@ -64,8 +64,14 @@ func (l *TelegramListener) Do(ctx context.Context) error {
 				return fmt.Errorf("telegram update chan closed")
 			}
 
-			if u := update.Message.Chat.UserName; len(l.Users) != 0 && !strings.Contains(l.Users, u) {
-				log.Printf("[WARNING] user %s is not allowed to use this bot", u)
+			u := update.Message.From.UserName
+			if len(u) == 0 {
+				log.Printf("[WARNING] username is empty of user %s %s\n", update.Message.From.FirstName, update.Message.From.LastName)
+				continue
+			}
+
+			if len(l.Users) != 0 && !strings.Contains(l.Users, u) {
+				log.Printf("[WARNING] user %s is not allowed to use this bot\n", u)
 				continue
 			}
 
