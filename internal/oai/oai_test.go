@@ -16,20 +16,20 @@ func (m *MockOpenAI) CreateChatCompletion(context.Context, openai.ChatCompletion
 }
 
 func TestNewClient(t *testing.T) {
-	c, err := NewClient("", 0, "")
+	c, err := New("", 0, "")
 	assert.Nil(t, c)
 	assert.NotNil(t, err)
 
-	c, err = NewClient("OPENAI_API_KEY", 0, "")
+	c, err = New("OPENAI_API_KEY", 0, "")
 	assert.NotNil(t, c)
 	assert.Nil(t, err)
 }
 
 func TestOpenAI_Execute(t *testing.T) {
-	c, _ := NewClient("OPENAI_API_KEY", 0, "")
+	c, _ := New("OPENAI_API_KEY", 0, "")
 	c.client = &MockOpenAI{}
 
-	res, err := c.Execute("Ping")
+	res, err := c.Generate("Ping")
 	assert.Nil(t, err)
 	assert.Equal(t, res, "Pong")
 }

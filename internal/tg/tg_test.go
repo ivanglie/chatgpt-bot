@@ -19,7 +19,7 @@ func (m *MockBotAPI) Send(c tgbotapi.Chattable) (tgbotapi.Message, error) {
 
 func TestTelegramBot_Execute(t *testing.T) {
 	b := &TelegramBot{bot: &MockBotAPI{}}
-	res, err := b.Execute(0, "Ping")
+	res, err := b.Send(0, "Ping")
 	assert.Nil(t, err)
 	assert.Equal(t, res, "Pong")
 }
