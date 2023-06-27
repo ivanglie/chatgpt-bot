@@ -10,21 +10,14 @@ Telegram bot that provides the use ChatGPT.
 git clone https://github.com/ivanglie/chatgpt-bot.git
 ```
 
-2. Put in the _.env_ file yours _BOT_TOKEN_, _OPENAI_API_KEY_
-
-You can add Telegram users who will have access to the bot (_BOT_USERS_), if needed.
-
-3. Build docker image
+2. Run command using _YOUR_BOT_TOKEN_, _YOUR_OPENAI_API_KEY_
 
 ```sh
-docker buildx build --platform=linux/amd64 -t my-chatgpt-bot -f Dockerfile .
+BOT_TOKEN=YOUR_BOT_TOKEN OPENAI_API_KEY=YOUR_OPENAI_API_KEY docker compose up -d
 ```
 
-4. Run container with _.env_
-
-```sh
-docker run --env-file .env -d -p 80:9000 my-chatgpt-bot
-```
+Also you can add Telegram users who will have access to the bot using arg _BOT_USERS_, if needed.
 
 ## References
 * [OpenAI](https://platform.openai.com/)
+* [Telegram](https://telegram.org/)

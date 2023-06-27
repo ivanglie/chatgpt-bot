@@ -9,12 +9,12 @@ import (
 	openai "github.com/sashabaranov/go-openai"
 )
 
-// OpenAIClient is interface for OpenAI with the possibility to mock it
+// OpenAIClient is interface for OpenAI with the possibility to mock it.
 type OpenAIClient interface {
 	CreateChatCompletion(context.Context, openai.ChatCompletionRequest) (openai.ChatCompletionResponse, error)
 }
 
-// OpenAI is a wrapper for OpenAIClient
+// OpenAI is a wrapper for OpenAIClient.
 type OpenAI struct {
 	authToken string
 	client    OpenAIClient
@@ -22,11 +22,11 @@ type OpenAI struct {
 	prompt    string
 }
 
-// NewClient makes a client for ChatGPT
+// New makes a client for ChatGPT.
 // maxTokens is hard limit for the number of tokens in the response
 // https://platform.openai.com/docs/api-reference/chat/create#chat/create-max_tokens
 // Returns OpenAI client and error if authToken is empty
-func NewClient(authToken string, maxTokens int, prompt string) (*OpenAI, error) {
+func New(authToken string, maxTokens int, prompt string) (*OpenAI, error) {
 	if len(authToken) == 0 {
 		return nil, errors.New("OPENAI_API_KEY is empty")
 	}
@@ -37,8 +37,8 @@ func NewClient(authToken string, maxTokens int, prompt string) (*OpenAI, error) 
 	return &OpenAI{authToken: authToken, client: client, maxTokens: maxTokens, prompt: prompt}, nil
 }
 
-// Send request to OpenAI and returns the response
-func (o *OpenAI) Execute(request string) (response string, err error) {
+// Generate returns a response for the request using ChatGPT.
+func (o *OpenAI) Generate(request string) (response string, err error) {
 	r := request
 	if o.prompt != "" {
 		r = o.prompt + ".\n" + request
@@ -66,7 +66,7 @@ func (o *OpenAI) Execute(request string) (response string, err error) {
 		return "", err
 	}
 
-	// OpenAI platform supports to return multiple chat completion choices
+	// OpenAI platform supports to return multiple chat completion choices.
 	// but we use only the first one
 	// https://platform.openai.com/docs/api-reference/chat/create#chat/create-n
 	if len(res.Choices) == 0 {
