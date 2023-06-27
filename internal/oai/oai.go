@@ -32,7 +32,7 @@ func New(authToken string, maxTokens int, prompt string) (*OpenAI, error) {
 	}
 
 	client := openai.NewClient(authToken)
-	log.Printf("OpenAI with prompt=%s, max=%d", prompt, maxTokens)
+	log.Printf("[DEBUG] OpenAI with prompt=%s, max=%d", prompt, maxTokens)
 
 	return &OpenAI{authToken: authToken, client: client, maxTokens: maxTokens, prompt: prompt}, nil
 }
