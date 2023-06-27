@@ -1,0 +1,41 @@
+name: Docker Image CI/CD
+
+on:
+  push:
+    branches: [ "master" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:  
+        - uses: actions/checkout@v3
+        
+        - name: Setup SSH key
+          run: |
+            install -m 600 -D /dev/null ~/.ssh/id_rsa
+            echo "${{ secrets.KEY }}" > ~/.ssh/id_rsa
+            ssh-keyscan -H ${{ secrets.HOST }} > ~/.ssh/known_hosts
+
+        - name: Create directory on remote host
+          run: |
+            ssh ${{ secrets.USER }}@${{ secrets.HOST }} "
+            echo ${{ secrets.PASSWORD }} | sudo -S rm -r /usr/src/chatgpt-bot
+            echo ${{ secrets.PASSWORD }} | sudo -S mkdir -p /usr/src/chatgpt-bot
+            echo ${{ secrets.PASSWORD }} | sudo -S chmod 777 /usr/src/chatgpt-bot"
+
+        - name: Build image
+          run: docker compose build
+          
+        - name: Save image
+          run: |
+            sudo docker save -o chatgpt-bot.tar chatgpt-bot:latest
+            sudo chmod 777 chatgpt-bot.tar
+
+        - name: Copy files to remote host
+          run: rsync -e "ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no" --archive --compress --delete docker-compose.yml chatgpt-bot.tar ${{ secrets.USER }}@${{ secrets.HOST }}:/usr/src/chatgpt-bot
+
+        - name: Load and run docker container on remote host
+          run: |
+            ssh ${{ secrets.USER }}@${{ secrets.HOST }} "
+            echo ${{ secrets.PASSWORD }} | sudo -S docker load -i /usr/src/chatgpt-bot/chatgpt-bot.tar
+            echo ${{ secrets.PASSWORD }} | sudo -S BOT_TOKEN=${{ secrets.BOT_TOKEN }} OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }} BOT_USERS=${{ secrets.BOT_USERS }} docker compose -f /usr/src/chatgpt-bot/docker-compose.yml up -d"
