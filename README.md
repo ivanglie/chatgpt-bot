@@ -16,7 +16,7 @@ git clone https://github.com/ivanglie/chatgpt-bot.git
 BOT_TOKEN=YOUR_BOT_TOKEN OPENAI_API_KEY=YOUR_OPENAI_API_KEY docker compose up -d
 ```
 
-Also you can add Telegram users who will have access to the bot using arg _BOT_USERS_, if needed.
+Also, you can add Telegram users who will have access to the bot using arg _BOT_USERS_, if needed.
 
 ## References
 * [OpenAI](https://platform.openai.com/)
