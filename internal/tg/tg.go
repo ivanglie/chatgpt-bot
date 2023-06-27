@@ -37,7 +37,7 @@ func New(token string, debug bool, offset, timeout int) (*TelegramBot, error) {
 
 	b.Debug = debug
 	if debug {
-		log.Printf("Authorized on account %s\n", b.Self.UserName)
+		log.Printf("[ERROR] Authorized on account %s\n", b.Self.UserName)
 	}
 
 	return &TelegramBot{bot: b, offset: offset, timeout: timeout}, nil

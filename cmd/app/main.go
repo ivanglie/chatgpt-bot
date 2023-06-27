@@ -3,19 +3,20 @@ package main
 import (
 	"errors"
 	"fmt"
-	"log"
 	"os"
 
 	"github.com/ivanglie/chatgpt-bot/internal/oai"
 	"github.com/ivanglie/chatgpt-bot/internal/tg"
 	"github.com/jessevdk/go-flags"
+	"github.com/rs/zerolog"
+	log "github.com/rs/zerolog/log"
 	"golang.org/x/exp/slices"
 )
 
 var (
 	opts struct {
-		BotToken     string   `long:"bottoken" env:"BOT_TOKEN" description:"telegram bot token"`
-		OnenAIAPIKey string   `long:"openaiapikey" env:"OPENAI_API_KEY" description:"OpenAI API key"`
+		BotToken     string   `long:"bottoken" env:"BOT_TOKEN" description:"bot token for Telegram"`
+		OnenAIAPIKey string   `long:"openaiapikey" env:"OPENAI_API_KEY" description:"key for OpenAI API"`
 		BotUsers     []string `long:"botusers" env:"BOT_USERS" env-delim:"," description:"bot users"`
 		Dbg          bool     `long:"dbg" env:"DEBUG" description:"use debug"`
 	}
@@ -25,6 +26,7 @@ var (
 
 func main() {
 	fmt.Printf("chatgpt-bot %s\n", version)
+
 	p := flags.NewParser(&opts, flags.Default)
 	if _, err := p.Parse(); err != nil {
 		if err.(*flags.Error).Type != flags.ErrHelp {
@@ -33,20 +35,22 @@ func main() {
 		os.Exit(2)
 	}
 
+	setupLog(opts.Dbg)
+
 	openAI, err := oai.New(opts.OnenAIAPIKey, 1000, "")
 	if err != nil {
-		log.Panic(err)
+		log.Panic().Err(err)
 	}
 
-	tBot, err := tg.New(opts.BotToken, true, 0, 60)
+	telegramBot, err := tg.New(opts.BotToken, opts.Dbg, 0, 60)
 	if err != nil {
-		log.Panic(err)
+		log.Panic().Err(err)
 	}
 
 	users := opts.BotUsers
-	log.Printf("users: %s, len: %d\n", users, len(users))
+	log.Debug().Msgf("users: %s, len: %d", users, len(users))
 
-	updates := tBot.GetUpdatesChan()
+	updates := telegramBot.GetUpdatesChan()
 
 	for update := range updates {
 		if update.Message == nil || update.Message.IsCommand() {
@@ -54,16 +58,27 @@ func main() {
 		}
 
 		if u := update.Message.Chat.UserName; len(u) == 0 || (len(users) == 0 || !slices.Contains(users, u)) {
-			log.Printf("error: %v\n", errors.New("user is not allowed"))
+			log.Error().Err(errors.New("user is not allowed"))
 			continue
 		}
 
 		res, err := openAI.Generate(update.Message.Text)
 		if err != nil {
-			log.Printf("error: %v\n", err)
+			log.Error().Err(err)
 			continue
 		}
 
-		tBot.Send(update.Message.Chat.ID, res)
+		log.Debug().Msgf("User: %s, Q: %s, A: %s", update.Message.From.UserName, update.Message.Text, res)
+
+		telegramBot.Send(update.Message.Chat.ID, res)
 	}
+}
+
+func setupLog(dbg bool) {
+	if dbg {
+		log.Level(zerolog.DebugLevel)
+		return
+	}
+
+	log.Level(zerolog.InfoLevel)
 }
