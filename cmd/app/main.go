@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"os"
 
@@ -39,12 +38,12 @@ func main() {
 
 	openAI, err := oai.New(opts.OnenAIAPIKey, 1000, "")
 	if err != nil {
-		log.Panic().Err(err)
+		log.Panic().Msg(err.Error())
 	}
 
 	telegramBot, err := tg.New(opts.BotToken, opts.Dbg, 0, 60)
 	if err != nil {
-		log.Panic().Err(err)
+		log.Panic().Msg(err.Error())
 	}
 
 	users := opts.BotUsers
@@ -57,14 +56,14 @@ func main() {
 			continue
 		}
 
-		if u := update.Message.Chat.UserName; len(u) == 0 || (len(users) == 0 || !slices.Contains(users, u)) {
-			log.Error().Err(errors.New("user is not allowed"))
+		if user := update.Message.From.UserName; len(users) != 0 && !slices.Contains(users, user) {
+			log.Error().Msgf("user %s is not allowed", user)
 			continue
 		}
 
 		res, err := openAI.Generate(update.Message.Text)
 		if err != nil {
-			log.Error().Err(err)
+			log.Error().Msg(err.Error())
 			continue
 		}
 
