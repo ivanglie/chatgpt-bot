@@ -57,9 +57,13 @@ func main() {
 		}
 
 		if user := update.Message.From.UserName; len(users) != 0 && !slices.Contains(users, user) {
-			log.Error().Msgf("user %s is not allowed", user)
+			log.Error().Msgf("user %s is not allowed", update.Message.From.String())
+			telegramBot.Send(update.Message.Chat.ID, "Access denied.")
+
 			continue
 		}
+
+		log.Debug().Msgf("user: %s, request: %s", update.Message.From.String(), update.Message.Text)
 
 		res, err := openAI.Generate(update.Message.Text)
 		if err != nil {
@@ -67,7 +71,7 @@ func main() {
 			continue
 		}
 
-		log.Debug().Msgf("User: %s, Q: %s, A: %s", update.Message.From.UserName, update.Message.Text, res)
+		log.Debug().Msgf("user: %s, response: %s", update.Message.From.String(), res)
 
 		telegramBot.Send(update.Message.Chat.ID, res)
 	}
