@@ -4,8 +4,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: chatgpt-bot:latest
-    container_name: "chatgpt-bot"
+    image: ivanglie/chatgpt-bot:latest
+    container_name: chatgpt-bot
     restart: always
     ports:
       - "18080:18080"
