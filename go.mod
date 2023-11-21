@@ -7,7 +7,7 @@ require github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.5.1
 require (
 	github.com/jessevdk/go-flags v1.5.0
 	github.com/rs/zerolog v1.29.1
-	github.com/sashabaranov/go-openai v1.5.3
+	github.com/sashabaranov/go-openai v1.17.8
 	github.com/stretchr/testify v1.8.2
 	golang.org/x/exp v0.0.0-20230626212559-97b1e661b5df
 )
