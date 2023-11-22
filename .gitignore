@@ -4,3 +4,4 @@
 *prod*
 *debug*
 *.db
+*.secret
