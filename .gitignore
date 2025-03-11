@@ -1,7 +1,3 @@
 .DS_Store
 # vendor/
-*.out
-*prod*
-*debug*
-*.db
-*.secret
+.env

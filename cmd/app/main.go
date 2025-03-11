@@ -47,7 +47,7 @@ func main() {
 	}
 
 	users := opts.BotUsers
-	log.Debug().Msgf("users: %s, len: %d", users, len(users))
+	log.Debug().Msgf("users: %v, len: %d", users, len(users))
 
 	updates := telegramBot.GetUpdatesChan()
 
