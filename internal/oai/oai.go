@@ -20,6 +20,7 @@ type OpenAI struct {
 	client    OpenAIClient
 	maxTokens int
 	prompt    string
+	history   []openai.ChatCompletionMessage
 }
 
 // New makes a client for ChatGPT.
@@ -30,35 +31,39 @@ func New(authToken string, maxTokens int, prompt string) (*OpenAI, error) {
 	if len(authToken) == 0 {
 		return nil, errors.New("OPENAI_API_KEY is empty")
 	}
-
 	client := openai.NewClient(authToken)
-	log.Printf("[DEBUG] OpenAI with prompt=%s, max=%d", prompt, maxTokens)
 
-	return &OpenAI{authToken: authToken, client: client, maxTokens: maxTokens, prompt: prompt}, nil
+	history := []openai.ChatCompletionMessage{
+		{
+			Role:    openai.ChatMessageRoleSystem,
+			Content: "You answer with no more than 50 words",
+		},
+	}
+
+	if prompt != "" {
+		history = append(history, openai.ChatCompletionMessage{
+			Role:    openai.ChatMessageRoleSystem,
+			Content: prompt,
+		})
+	}
+
+	log.Printf("[DEBUG] OpenAI with prompt=%s, max=%d", prompt, maxTokens)
+	return &OpenAI{authToken: authToken, client: client, maxTokens: maxTokens, prompt: prompt, history: history}, nil
 }
 
 // Generate returns a response for the request using ChatGPT.
 func (o *OpenAI) Generate(request string) (response string, err error) {
-	r := request
-	if o.prompt != "" {
-		r = o.prompt + ".\n" + request
-	}
+	o.history = append(o.history, openai.ChatCompletionMessage{
+		Role:    openai.ChatMessageRoleUser,
+		Content: request,
+	})
 
 	res, err := o.client.CreateChatCompletion(
 		context.Background(),
 		openai.ChatCompletionRequest{
-			Model:     openai.GPT3Dot5Turbo,
+			Model:     openai.GPT4oMini,
 			MaxTokens: o.maxTokens,
-			Messages: []openai.ChatCompletionMessage{
-				{
-					Role:    openai.ChatMessageRoleSystem,
-					Content: "You answer with no more than 50 words",
-				},
-				{
-					Role:    openai.ChatMessageRoleUser,
-					Content: r,
-				},
-			},
+			Messages:  o.history,
 		},
 	)
 
@@ -66,9 +71,6 @@ func (o *OpenAI) Generate(request string) (response string, err error) {
 		return "", err
 	}
 
-	// OpenAI platform supports to return multiple chat completion choices.
-	// but we use only the first one
-	// https://platform.openai.com/docs/api-reference/chat/create#chat/create-n
 	if len(res.Choices) == 0 {
 		return "", fmt.Errorf("no choices in response")
 	}
@@ -77,6 +79,11 @@ func (o *OpenAI) Generate(request string) (response string, err error) {
 	if len(resp) == 0 {
 		return "", fmt.Errorf("empty response")
 	}
+
+	o.history = append(o.history, openai.ChatCompletionMessage{
+		Role:    openai.ChatMessageRoleAssistant,
+		Content: resp,
+	})
 
 	return resp, nil
 }
