@@ -1,4 +1,4 @@
-FROM golang:1.19-alpine AS builder
+FROM golang:1.24.0-alpine AS builder
 WORKDIR /usr/src/chatgpt-bot
 COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -mod=vendor -v -o chatgpt-bot ./cmd/app
