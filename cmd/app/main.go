@@ -36,12 +36,12 @@ func main() {
 
 	setupLog(opts.Dbg)
 
-	openAI, err := oai.New(opts.OnenAIAPIKey, 1000, "")
+	telegramBot, err := tg.New(opts.BotToken, opts.Dbg, 0, 60)
 	if err != nil {
 		log.Panic().Msg(err.Error())
 	}
 
-	telegramBot, err := tg.New(opts.BotToken, opts.Dbg, 0, 60)
+	openAI, err := oai.New(opts.OnenAIAPIKey, 1000, "")
 	if err != nil {
 		log.Panic().Msg(err.Error())
 	}
@@ -65,7 +65,10 @@ func main() {
 
 		log.Debug().Msgf("user: %s, request: %s", update.Message.From.String(), update.Message.Text)
 
-		res, err := openAI.Generate(update.Message.Text)
+		userID := fmt.Sprintf("%d", update.Message.From.ID)
+		chatID := fmt.Sprintf("%d", update.Message.Chat.ID)
+
+		res, err := openAI.Generate(userID, chatID, update.Message.Text)
 		if err != nil {
 			log.Error().Msg(err.Error())
 			continue
