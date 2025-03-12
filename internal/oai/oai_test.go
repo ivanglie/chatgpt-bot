@@ -29,7 +29,7 @@ func TestOpenAI_Execute(t *testing.T) {
 	c, _ := New("OPENAI_API_KEY", 0, "")
 	c.client = &MockOpenAI{}
 
-	res, err := c.Generate("Ping")
+	res, err := c.Generate("userID", "chatID", "Ping")
 	assert.Nil(t, err)
 	assert.Equal(t, res, "Pong")
 }

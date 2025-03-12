@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"sync"
 
 	openai "github.com/sashabaranov/go-openai"
 )
@@ -16,44 +17,58 @@ type OpenAIClient interface {
 
 // OpenAI is a wrapper for OpenAIClient.
 type OpenAI struct {
-	authToken string
-	client    OpenAIClient
-	maxTokens int
-	prompt    string
-	history   []openai.ChatCompletionMessage
+	mu sync.RWMutex
+
+	authToken     string
+	client        OpenAIClient
+	maxTokens     int
+	prompt        string
+	chatHistories map[string][]openai.ChatCompletionMessage
 }
 
 // New makes a client for ChatGPT.
-// maxTokens is hard limit for the number of tokens in the response
-// https://platform.openai.com/docs/api-reference/chat/create#chat/create-max_tokens
-// Returns OpenAI client and error if authToken is empty
 func New(authToken string, maxTokens int, prompt string) (*OpenAI, error) {
 	if len(authToken) == 0 {
 		return nil, errors.New("OPENAI_API_KEY is empty")
 	}
+
 	client := openai.NewClient(authToken)
-
-	history := []openai.ChatCompletionMessage{
-		{
-			Role:    openai.ChatMessageRoleSystem,
-			Content: "You answer with no more than 50 words",
-		},
-	}
-
-	if prompt != "" {
-		history = append(history, openai.ChatCompletionMessage{
-			Role:    openai.ChatMessageRoleSystem,
-			Content: prompt,
-		})
-	}
-
 	log.Printf("[DEBUG] OpenAI with prompt=%s, max=%d", prompt, maxTokens)
-	return &OpenAI{authToken: authToken, client: client, maxTokens: maxTokens, prompt: prompt, history: history}, nil
+
+	return &OpenAI{
+		authToken:     authToken,
+		client:        client,
+		maxTokens:     maxTokens,
+		prompt:        prompt,
+		chatHistories: make(map[string][]openai.ChatCompletionMessage),
+	}, nil
 }
 
-// Generate returns a response for the request using ChatGPT.
-func (o *OpenAI) Generate(request string) (response string, err error) {
-	o.history = append(o.history, openai.ChatCompletionMessage{
+// Generate returns a response for the specific user and chat.
+func (o *OpenAI) Generate(userID, chatID, request string) (response string, err error) {
+	chatKey := userID + ":" + chatID
+
+	o.mu.RLock()
+	history, exists := o.chatHistories[chatKey]
+	o.mu.RUnlock()
+
+	if !exists {
+		history = []openai.ChatCompletionMessage{
+			{
+				Role:    openai.ChatMessageRoleSystem,
+				Content: "You answer with no more than 50 words",
+			},
+		}
+
+		if o.prompt != "" {
+			history = append(history, openai.ChatCompletionMessage{
+				Role:    openai.ChatMessageRoleSystem,
+				Content: o.prompt,
+			})
+		}
+	}
+
+	history = append(history, openai.ChatCompletionMessage{
 		Role:    openai.ChatMessageRoleUser,
 		Content: request,
 	})
@@ -63,7 +78,7 @@ func (o *OpenAI) Generate(request string) (response string, err error) {
 		openai.ChatCompletionRequest{
 			Model:     openai.GPT4oMini,
 			MaxTokens: o.maxTokens,
-			Messages:  o.history,
+			Messages:  history,
 		},
 	)
 
@@ -76,14 +91,19 @@ func (o *OpenAI) Generate(request string) (response string, err error) {
 	}
 
 	resp := res.Choices[0].Message.Content
+
 	if len(resp) == 0 {
 		return "", fmt.Errorf("empty response")
 	}
 
-	o.history = append(o.history, openai.ChatCompletionMessage{
+	history = append(history, openai.ChatCompletionMessage{
 		Role:    openai.ChatMessageRoleAssistant,
 		Content: resp,
 	})
+
+	o.mu.Lock()
+	o.chatHistories[chatKey] = history
+	o.mu.Unlock()
 
 	return resp, nil
 }
